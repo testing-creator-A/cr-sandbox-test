@@ -1,0 +1,7 @@
+language: en-US
+reviews:
+  auto_review:
+    enabled: true
+  tools:
+    clippy:
+      enabled: true
