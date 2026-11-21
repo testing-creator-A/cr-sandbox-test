@@ -1,0 +1,6 @@
+{
+  "jsPlugins": ["./h3-oxlint-plugin.js"],
+  "rules": {
+    "probe/probe": "error"
+  }
+}

@@ -1,0 +1,6 @@
+parameters:
+    level: 0
+    paths:
+        - php
+    bootstrapFiles:
+        - php/bootstrap.php
