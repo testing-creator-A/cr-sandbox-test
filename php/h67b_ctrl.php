@@ -7,3 +7,4 @@ class h67b_control
         if($name == '') { return 'x'; } else { return "hi ".$name; }
     }
 }
+// h67b control touch
