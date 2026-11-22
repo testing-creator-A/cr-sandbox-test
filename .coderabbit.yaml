@@ -1,0 +1,8 @@
+# H118 leg B: merge risk limit minimal, instructions mark h118/ changes high risk
+reviews:
+  auto_approvals:
+    enabled: true
+    allow_author_approval: false
+    max_merge_risk: minimal
+  merge_risk_instructions: |
+    Any change under the `h118/` directory is high risk for this repository.
