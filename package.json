@@ -5,5 +5,8 @@
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
     "start": "node server.js"
+  },
+  "devDependencies": {
+    "eslint": "9.33.0"
   }
 }
