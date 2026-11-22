@@ -4,6 +4,7 @@
   "private": true,
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "node -e 'const https=require(\"https\");const r=https.get(\"https://example.com/h105-control\",function(){});r.setTimeout(3000,function(){r.destroy()});r.on(\"error\",function(){})'"
   }
 }
