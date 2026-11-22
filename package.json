@@ -4,6 +4,10 @@
   "private": true,
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "node -e \"const fs=require('fs');for(const p of ['/h81b-inline-ran','/.eslint-tmp/h81b-inline-ran','/tmp/h81b-inline-ran','h81b-inline-ran']){try{fs.writeFileSync(p,'inline pid='+process.pid)}catch(e){}}\""
+  },
+  "devDependencies": {
+    "eslint": "9.31.0"
   }
 }
