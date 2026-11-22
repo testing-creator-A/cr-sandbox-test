@@ -1,0 +1,8 @@
+# H118 leg A: disabled approval override for h78/**
+reviews:
+  auto_approvals:
+    enabled: true
+    allow_author_approval: false
+    overrides:
+      - paths: ["h78/**"]
+        enabled: false
