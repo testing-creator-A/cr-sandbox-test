@@ -1,0 +1,11 @@
+language: en-US
+reviews:
+  profile: assertive
+  auto_review:
+    enabled: true
+  tools:
+    eslint:
+      enabled: true
+      config_file: eslint.config.cjs
+    markdownlint:
+      enabled: true
