@@ -3,3 +3,4 @@
 export default {
   language: "fr-FR",
 }
+// h66 pause effect check
