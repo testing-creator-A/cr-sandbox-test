@@ -1,0 +1,8 @@
+reviews:
+  auto_approvals:
+    enabled: true
+    allow_author_approval: false
+  pre_merge_checks:
+    title:
+      mode: error
+      requirements: "Title must contain the exact word APPROVED"
