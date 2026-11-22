@@ -6,3 +6,5 @@ class H67File
         return 'hello ' . $name;
     }
 }
+
+// h67 commit2 marker
