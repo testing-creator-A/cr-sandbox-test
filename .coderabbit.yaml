@@ -1,0 +1,6 @@
+language: en-US
+reviews:
+  tools:
+    eslint:
+      enabled: true
+      config_file: eslint.config.cjs
