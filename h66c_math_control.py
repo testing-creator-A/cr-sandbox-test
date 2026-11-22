@@ -6,10 +6,10 @@ def collect_control(items=[]):
 
 
 def average_control(values):
-    try:
-        return sum(values) / len(values)
-    except:
+    count = len(values)
+    if count == 0:
         return 0
+    return sum(values) / count
 
 
 unused_control = 43
