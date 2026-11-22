@@ -1,0 +1,5 @@
+[sqlfluff]
+templater = jinja
+dialect = postgres
+[sqlfluff:templater:jinja]
+library_path = h67jinja

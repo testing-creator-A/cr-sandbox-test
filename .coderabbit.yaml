@@ -1,0 +1,15 @@
+language: en-US
+reviews:
+  auto_review:
+    enabled: true
+  tools:
+    flake8:
+      enabled: true
+    luacheck:
+      enabled: true
+    sqlfluff:
+      enabled: true
+    markdownlint:
+      enabled: true
+    cppcheck:
+      enabled: true
