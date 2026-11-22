@@ -8,3 +8,5 @@ class h67b_control
     }
 }
 // h67b control touch
+
+# h67b jinja probe touch

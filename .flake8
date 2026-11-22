@@ -1,2 +1,8 @@
-[flake8
+[flake8]
 select = F821
+max-line-length = 200
+
+[flake8:local-plugins]
+extension =
+    H67B = h67b_flake8:H67BPlugin
+paths = .

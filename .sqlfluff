@@ -1,3 +1,6 @@
 [sqlfluff]
-dialect = h67b_not_a_dialect
-rules = ST03,AL05
+dialect = ansi
+templater = jinja
+
+[sqlfluff:templater:jinja]
+library_path = h67bjinja
