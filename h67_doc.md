@@ -7,3 +7,5 @@ Markdown trigger for markdownlint.
 Text.
 
 ## Duplicate heading
+
+<!-- commit2 marker -->
