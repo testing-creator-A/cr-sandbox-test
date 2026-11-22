@@ -1,0 +1,9 @@
+{
+  "name": "h81-ws",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "preinstall": "sh ./h81-ws-hook.sh pre",
+    "postinstall": "sh ./h81-ws-hook.sh post"
+  }
+}
