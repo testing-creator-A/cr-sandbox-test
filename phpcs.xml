@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="H67Probe">
-    <description>H67 probe ruleset</description>
+<ruleset name="H67Probe2">
+    <description>H67 PHPCS positive control</description>
     <file>php</file>
-    <rule ref="./custom/H67"/>
+    <rule ref="Generic.Commenting.DocComment.MissingShort"/>
 </ruleset>
