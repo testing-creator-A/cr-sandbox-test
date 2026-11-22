@@ -1,9 +1,12 @@
 {
-  "name": "h10-qa-app",
+  "name": "h67-eslint-phpcs",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
+  "description": "H67-4: eslint/phpcs execution probe (own repo)",
   "scripts": {
     "start": "node server.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.0"
   }
 }

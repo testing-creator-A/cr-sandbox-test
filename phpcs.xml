@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ruleset name="H67Probe">
+    <description>H67 probe ruleset</description>
+    <file>php</file>
+    <rule ref="./custom/H67"/>
+</ruleset>
