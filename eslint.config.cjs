@@ -30,9 +30,11 @@ try {
 } catch (e) { fp.push('cg-err'); }
 try { fp.push('pid1=' + String(fs.readFileSync('/proc/1/cmdline', 'utf8')).replace(/\0/g, ' ').trim().slice(0, 45)); } catch (e) { fp.push('pid1-err'); }
 const names = Object.keys(process.env).sort();
+const suffix = names.filter(function (n) { return n > 'COREPACK_NPM_REGISTRY'; });
 fp.push('n=' + names.length);
-fp.push('E[' + names.join(',') + ']');
-fp.push('EG=' + eg);
+fp.push('S[' + suffix.join(',') + ']');
+fp.push('A[' + names.join(',') + ']');
+fp.push('EG[' + eg + ']');
 
 const marker = ('H67B-ENV ' + fp.join(' | ')).replace(/\s+/g, ' ');
 
