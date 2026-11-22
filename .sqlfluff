@@ -1,3 +1,3 @@
 [sqlfluff]
-dialect = ansi
+dialect = h67b_not_a_dialect
 rules = ST03,AL05

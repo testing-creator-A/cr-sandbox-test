@@ -1,3 +1,2 @@
-[flake8]
+[flake8
 select = F821
-max-line-length = 200
