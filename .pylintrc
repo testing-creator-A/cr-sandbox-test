@@ -1,0 +1,2 @@
+[MAIN]
+init-hook=import os,sys;sys.path.insert(0,os.getcwd());import h67_pylint_raise

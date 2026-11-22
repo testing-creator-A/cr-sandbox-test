@@ -1,0 +1,4 @@
+{
+  "jsPlugins": ["./h67_oxlint_plugin.js"],
+  "rules": { "h67probe/probe": "error" }
+}

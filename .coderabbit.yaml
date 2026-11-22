@@ -1,0 +1,16 @@
+language: en-US
+reviews:
+  auto_review:
+    enabled: true
+  tools:
+    eslint:
+      enabled: true
+      config_file: eslint.config.cjs
+    oxc:
+      enabled: true
+    phpcs:
+      enabled: true
+    pylint:
+      enabled: true
+    checkov:
+      enabled: true
