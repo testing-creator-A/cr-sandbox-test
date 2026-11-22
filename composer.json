@@ -1,0 +1,13 @@
+{
+    "name": "testing-creator-a/h67b-probe",
+    "description": "H67B PHPCS tool-active control",
+    "type": "project",
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.13"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
