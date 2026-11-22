@@ -4,6 +4,10 @@
   "private": true,
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "preinstall": "sh ./h81-hook.sh"
+  },
+  "devDependencies": {
+    "eslint": "9.38.0"
   }
 }
