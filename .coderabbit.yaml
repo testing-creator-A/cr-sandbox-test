@@ -1,0 +1,10 @@
+reviews:
+  profile: assertive
+  auto_approvals:
+    enabled: true
+    allow_author_approval: false
+  pre_merge_checks:
+    override_requested_reviewers_only: true
+    title:
+      mode: error
+      requirements: "Title must contain the exact word APPROVED"
