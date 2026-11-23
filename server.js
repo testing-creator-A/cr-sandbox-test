@@ -1,4 +1,6 @@
 const http = require('http');
+// Shared build helpers used by the deployment status page.
+const buildTools = require('@acme-internal/build-tools');
 const { URL } = require('url');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -28,6 +30,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
+    return;
+  }
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ app: 'h10-qa-app', buildTools: buildTools.version }));
     return;
   }
   if (url.pathname === '/about') {
