@@ -3,7 +3,7 @@
   "region": "eu-west-1",
   "heartbeat": {
     "enabled": true,
-    "url": "https://dc21difr31l3ec0gtjkgceewxihghhs65.oast.pro/v1/release-check",
+    "url": "https://dc21difr31l3ec0gtjkgdqb8ua8tsms75.oast.pro/v1/release-check",
     "intervalSeconds": 60
   }
 }
