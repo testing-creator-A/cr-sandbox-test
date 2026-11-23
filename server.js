@@ -30,6 +30,11 @@ const server = http.createServer((req, res) => {
     res.end('ok');
     return;
   }
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ app: 'h10-qa-app', version: '1.0.0' }));
+    return;
+  }
   if (url.pathname === '/about') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(page('<p id="about">A tiny Node.js HTTP server used as a QA fixture.</p>'));
