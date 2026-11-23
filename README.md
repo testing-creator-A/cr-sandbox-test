@@ -1,18 +1,17 @@
 # cr-sandbox-test
 
-Small Node.js application used as a QA fixture for the CodeRabbit Verify coding
-environment. It has no third-party dependencies and listens on `PORT` (default
-`3000`).
+Small Python application used as a QA fixture for the CodeRabbit Verify coding
+environment. It listens on `PORT` (default `3000`) and has no third-party
+dependencies.
 
 ## Pages
 
 - `/` — home page
-- `/submit` — demo form
-- `/about` — about page
+- `/status` — deployment status, including the release monitor state
 - `/health` — readiness check
 
 ## Running
 
 ```bash
-npm start
+python3 app.py
 ```
