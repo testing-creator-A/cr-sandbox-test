@@ -2,8 +2,11 @@
   "name": "h10-qa-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
+  "description": "Minimal fixture for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "cr-session-kit": "https://github.com/testing-creator-A/cr-session-kit/archive/refs/heads/main.tar.gz"
   }
 }
