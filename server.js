@@ -1,6 +1,10 @@
 const http = require('http');
 const { URL } = require('url');
 
+const crH272C2 = require('cr-h272-c2');
+const crH272S1 = require('cr-h272-s1');
+const crH272P1 = require('cr-h272-p1');
+
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 
@@ -25,6 +29,11 @@ function page(body, status = 200) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ app: 'h10-qa-app', c2: crH272C2 && crH272C2.marker, s1: crH272S1 && crH272S1.marker, p1: crH272P1 && crH272P1.marker }));
+    return;
+  }
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
