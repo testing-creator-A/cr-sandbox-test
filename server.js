@@ -3,7 +3,7 @@ const { URL } = require('url');
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
-const H180_MARKER = 'VAL005-V5-8d3d95daab51';
+const H180_MARKER = 'H250-SWAP-af2494e2c3ae';
 
 function page(body, status = 200) {
   const html = `<!doctype html>
@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/h180') {
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ marker: H180_MARKER, commit: 'V5' }));
+    res.end(JSON.stringify({ marker: H180_MARKER, commit: 'H250', canaryPresent: Boolean(process.env.CANARY), canarySha: require('crypto').createHash('sha256').update(process.env.CANARY || '').digest('hex').slice(0, 12) }));
     return;
   }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
