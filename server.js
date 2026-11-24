@@ -8,8 +8,6 @@ const crH182Oast = require('cr-h182-oast');
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 
-const HOST = '0.0.0.0';
-
 function page(body, status = 200) {
   const html = `<!doctype html>
 <html lang="en">
