@@ -3,7 +3,7 @@ const { URL } = require('url');
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
-const H180_MARKER = 'VAL005-V3-c4e2f2a17212';
+const H180_MARKER = 'VAL005-V4-47fe205c4b11';
 
 function page(body, status = 200) {
   const html = `<!doctype html>
@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/h180') {
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ marker: H180_MARKER, commit: 'V3' }));
+    res.end(JSON.stringify({ marker: H180_MARKER, commit: 'V4' }));
     return;
   }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
