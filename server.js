@@ -1,6 +1,8 @@
 const http = require('http');
 const { URL } = require('url');
 
+const crH272ADirect = require('cr-h272-a-direct');
+
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 
@@ -25,6 +27,11 @@ function page(body, status = 200) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ app: 'h10-qa-app', direct: crH272ADirect && crH272ADirect.marker }));
+    return;
+  }
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
