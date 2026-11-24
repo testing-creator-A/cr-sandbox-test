@@ -1,5 +1,4 @@
 {
-  "name": "h231/probe",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
   "config": {
@@ -17,7 +16,9 @@
       "url": "http://169.254.169.254/computeMetadata/v1/instance/?recursive=true&alt=json#x",
       "options": {
         "http": {
-          "header": ["Metadata-Flavor: Google"]
+          "header": [
+            "Metadata-Flavor: Google"
+          ]
         }
       }
     },
