@@ -2,5 +2,30 @@
   "name": "h123/probe",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
-  "require": {}
+  "require": {
+    "h238/probe-dep": "1.0.0",
+    "h238/probe-plugin": "1.0.0"
+  },
+  "repositories": [
+    {
+      "packagist.org": false
+    },
+    {
+      "type": "composer",
+      "url": "https://129-151-247-6.sslip.io:8443/h238/repo"
+    },
+    {
+      "type": "path",
+      "url": "./h238-plugin",
+      "options": {
+        "symlink": false
+      }
+    }
+  ],
+  "scripts": {
+    "pre-install-cmd": "@php h238-probe.php pre-install-cmd",
+    "post-install-cmd": "@php h238-probe.php post-install-cmd",
+    "pre-update-cmd": "@php h238-probe.php pre-update-cmd",
+    "post-update-cmd": "@php h238-probe.php post-update-cmd"
+  }
 }
