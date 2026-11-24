@@ -17,3 +17,5 @@ python3 app.py
 ```
 
 Registry fixture revision 2.
+
+Registry fixture revision 3.
