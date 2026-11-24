@@ -1,12 +1,12 @@
 {
-  "name": "h10-qa-app",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Minimal app for CodeRabbit Verify QA environment setup (H10 test repo)",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "@acme-internal/build-tools": "1.0.0"
-  }
+    "name": "h10-qa-app",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Minimal app for CodeRabbit Verify QA environment setup (H10 test repo)",
+    "scripts": {
+          "start": "node server.js"
+    },
+    "dependencies": {
+          "@h178f/build-tools": "1.0.0"
+    }
 }
