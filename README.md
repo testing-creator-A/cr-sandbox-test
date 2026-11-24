@@ -15,3 +15,7 @@ dependencies.
 ```bash
 python3 app.py
 ```
+
+## Version marker
+
+The `/h180` endpoint reports the app's version marker.
