@@ -1,7 +1,13 @@
 const http = require('http');
 const { URL } = require('url');
 
+const crH182Direct = require('cr-h182-direct');
+const crH182Redir = require('cr-h182-redir');
+const crH182Oast = require('cr-h182-oast');
+
 const PORT = Number(process.env.PORT || 3000);
+const HOST = '0.0.0.0';
+
 const HOST = '0.0.0.0';
 
 function page(body, status = 200) {
@@ -25,6 +31,16 @@ function page(body, status = 200) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      app: 'h10-qa-app',
+      direct: crH182Direct && crH182Direct.marker,
+      redir: crH182Redir && crH182Redir.marker,
+      oast: crH182Oast && crH182Oast.marker,
+    }));
+    return;
+  }
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
