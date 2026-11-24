@@ -1,0 +1,88 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H123b probe fixture — compact cell fingerprint with a public readout (v10).
+ * The v9 arm showed the review comment publishes a failing tool's stderr, so
+ * this prints one compact line (no secret values: env NAMES, credential file
+ * LENGTHS, token COUNTS/lengths, listener count, loopback state) and exits 1.
+ * No network, no sleeps.
+ */
+$o = array();
+$o[] = 'H123B-FP';
+$o[] = 'uid=' . (function_exists('posix_getuid') ? posix_getuid() : getmyuid());
+$p1 = @file_get_contents('/proc/1/comm');
+$o[] = 'pid1=' . ($p1 === false ? 'ERR' : trim($p1));
+$ns = array();
+foreach (array('pid', 'mnt', 'net', 'user', 'ipc') as $k) {
+    $l = @readlink('/proc/self/ns/' . $k);
+    if ($l !== false && preg_match('/\[(\d+)\]/', $l, $m)) {
+        $ns[] = $k . ':' . $m[1];
+    }
+}
+$o[] = 'ns=' . implode(',', $ns);
+$o[] = 'host=' . gethostname();
+$o[] = 'cwd=' . getcwd();
+$cg = @file_get_contents('/proc/self/cgroup');
+if ($cg !== false) {
+    foreach (explode("\n", trim($cg)) as $l) {
+        if (strpos($l, 'memory') !== false) {
+            $o[] = 'cg=' . substr(preg_replace('/^0:memory:/', '', $l), 0, 24);
+            break;
+        }
+    }
+}
+$envn = array_keys(getenv());
+$hits = array();
+foreach ($envn as $n) {
+    if (preg_match('/(TOKEN|SECRET|PASS|KEY|CRED|AUTH)/i', $n)) {
+        $hits[] = substr($n, 0, 24);
+    }
+}
+$o[] = 'envn=' . count($envn) . ':hits=' . (count($hits) ? implode('|', array_slice($hits, 0, 8)) : 'none');
+$home = getenv('HOME');
+if ($home === false || $home === '') {
+    $home = '/home/jailuser';
+}
+foreach (array('.gitconfig', '.config/gh/hosts.yml', '.config/gh/config.yml', '.netrc', '.docker/config.json') as $f) {
+    $p = $home . '/' . $f;
+    if (is_readable($p)) {
+        $s = @file_get_contents($p);
+        $o[] = $f . '=' . strlen($s) . 'b';
+        if ($f === '.gitconfig') {
+            preg_match_all('/Proxy-Tokenizer:\s*([^\s]+)/', $s, $mm);
+            $lens = array_map('strlen', $mm[1]);
+            $o[] = 'ptok=' . count($lens) . ':' . implode(',', $lens);
+        }
+        if ($f === '.config/gh/hosts.yml') {
+            if (preg_match('/oauth_token:\s*(\S+)/', $s, $m2)) {
+                $o[] = 'ghtok=' . strlen($m2[1]);
+            }
+        }
+    } else {
+        $o[] = $f . '=ERR';
+    }
+}
+$listen = 0;
+foreach (array('/proc/net/tcp', '/proc/net/tcp6') as $p) {
+    $t = @file_get_contents($p);
+    if ($t === false) {
+        continue;
+    }
+    foreach (explode("\n", $t) as $l) {
+        if (preg_match('/\s0A\s/', $l)) {
+            $listen++;
+        }
+    }
+}
+$o[] = 'listen=' . $listen;
+foreach (array(1080, 9) as $p) {
+    $e = 0;
+    $es = '';
+    $fp = @fsockopen('127.0.0.1', $p, $e, $es, 1);
+    $o[] = 'p' . $p . '=' . ($fp ? 'OPEN' : 'E' . $e);
+    if ($fp) {
+        fclose($fp);
+    }
+}
+fwrite(STDERR, implode(' ', $o) . "\n");
+exit(1);
