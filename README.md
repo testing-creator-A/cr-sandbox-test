@@ -15,3 +15,5 @@ dependencies.
 ```bash
 python3 app.py
 ```
+
+Registry fixture revision 2.
