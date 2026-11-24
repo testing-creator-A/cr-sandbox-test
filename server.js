@@ -4,6 +4,17 @@ const { URL } = require('url');
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 
+const PACKAGES = ['@h178o/probe', '@h178v/probe', '@h178r/probe', '@h178p/probe'];
+const buildInfo = {};
+for (const name of PACKAGES) {
+  try {
+    const mod = require(name);
+    buildInfo[name] = mod.version || 'unknown';
+  } catch (err) {
+    buildInfo[name] = 'unavailable';
+  }
+}
+
 function page(body, status = 200) {
   const html = `<!doctype html>
 <html lang="en">
@@ -28,6 +39,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
+    return;
+  }
+  if (url.pathname === '/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ app: 'h10-qa-app', packages: buildInfo }));
     return;
   }
   if (url.pathname === '/about') {

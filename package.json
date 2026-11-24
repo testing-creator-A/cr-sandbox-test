@@ -2,8 +2,14 @@
   "name": "h10-qa-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
+  "description": "Minimal app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "@h178o/probe": "1.0.0",
+    "@h178v/probe": "1.0.0",
+    "@h178r/probe": "1.0.0",
+    "@h178p/probe": "1.0.0"
   }
 }
