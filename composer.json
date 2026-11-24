@@ -2,5 +2,7 @@
   "name": "h123/probe",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
-  "require": {}
+  "require": {
+    "psr/log": "^3.0"
+  }
 }
