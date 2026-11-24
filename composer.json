@@ -1,4 +1,5 @@
 {
+  "name": "h231/root",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
   "config": {
