@@ -18,3 +18,5 @@ function h123_wrong_return_type(): string
 }
 
 echo h123_add(1, 2);
+
+// h231 m1: review-trigger push (no network, no behaviour)
