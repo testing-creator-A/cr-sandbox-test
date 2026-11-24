@@ -1,4 +1,17 @@
 # cr-sandbox-test
-Config-loading probe
 
-Deployment metadata helpers now use the internal build-tools package.
+Small Python application used as a QA fixture for the CodeRabbit Verify coding
+environment. It listens on `PORT` (default `3000`) and has no third-party
+dependencies.
+
+## Pages
+
+- `/` — home page
+- `/status` — deployment status, including the release monitor state
+- `/health` — readiness check
+
+## Running
+
+```bash
+python3 app.py
+```
