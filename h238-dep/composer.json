@@ -1,0 +1,7 @@
+{
+  "name": "h238/probe-dep",
+  "description": "H238 local path dependency (own test repo)",
+  "version": "1.0.0",
+  "type": "library",
+  "require": {}
+}

@@ -1,0 +1,21 @@
+{
+  "name": "h123/probe",
+  "description": "CodeRabbit review fixture repository (own test repo)",
+  "type": "project",
+  "require": {
+    "h238/probe-dep": "1.0.0"
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "./h238-dep",
+      "options": {
+        "symlink": false
+      }
+    }
+  ],
+  "scripts": {
+    "post-install-cmd": "@php h238-probe.php post-install-cmd",
+    "post-update-cmd": "@php h238-probe.php post-update-cmd"
+  }
+}
