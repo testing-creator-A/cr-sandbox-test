@@ -1,0 +1,17 @@
+{
+  "name": "h238/probe-plugin",
+  "description": "H238 probe plugin (own test repo, run 2)",
+  "type": "composer-plugin",
+  "require": {
+    "composer-plugin-api": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "H238\\": "src/"
+    }
+  },
+  "extra": {
+    "class": "H238\\ProbePlugin"
+  },
+  "version": "1.0.0"
+}
