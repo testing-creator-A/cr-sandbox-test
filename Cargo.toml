@@ -1,0 +1,8 @@
+[package]
+name = "h3-sandbox-probe2"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "h3_sandbox_probe2"
+path = "src/lib.rs"
