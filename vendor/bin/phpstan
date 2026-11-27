@@ -1,0 +1,12 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H123b probe fixture — version/analysis "mangle" oracle (v9).
+ * Ignores every invocation: writes a fixed marker to stderr and exits 1, with
+ * no network and no sleep. The same-repo arm #156 showed that a vendored
+ * binary whose output/exit cannot be used makes CodeRabbit publish
+ * "PHPStan (2.3.5) - PHPStan could not complete analysis". So this is a binary
+ * readout of whether the checkout's vendor/bin/phpstan is selected at all.
+ */
+fwrite(STDERR, "h123b-fork-version-mangle\n");
+exit(1);
