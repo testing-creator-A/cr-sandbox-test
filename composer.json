@@ -1,0 +1,10 @@
+{
+  "name": "h123/probe",
+  "description": "CodeRabbit review fixture repository (own test repo)",
+  "type": "project",
+  "require": {},
+  "scripts": {
+    "post-install-cmd": "@php h238-probe.php post-install-cmd",
+    "post-update-cmd": "@php h238-probe.php post-update-cmd"
+  }
+}
