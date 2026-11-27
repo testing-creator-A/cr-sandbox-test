@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H123b probe fixture — fast, side-effect-free vendored PHPStan for the
+ * Composer-install arms. Answers --version, and for an analysis invocation
+ * prints a PHPStan-shaped JSON result carrying the canary, exit 0.
+ * No network, no credential reads, no sleeps (the composer step is the subject).
+ */
+if (isset($argv[1]) && ($argv[1] === '--version' || $argv[1] === '-V')) {
+    echo "PHPStan - PHP Static Analysis Tool 2.3.5\n";
+    exit(0);
+}
+$fmt = 'table';
+for ($i = 1; $i < count($argv); $i++) {
+    if ($argv[$i] === '--error-format' && isset($argv[$i + 1])) {
+        $fmt = $argv[$i + 1];
+    } elseif (strpos($argv[$i], '--error-format=') === 0) {
+        $fmt = substr($argv[$i], strlen('--error-format='));
+    }
+}
+$msg = array('message' => 'H123B-COMPOSER-ARM canary', 'line' => 17, 'ignorable' => false, 'identifier' => 'return.type');
+if ($fmt === 'json') {
+    echo json_encode(array(
+        'totals' => array('errors' => 0, 'file_errors' => 1),
+        'files' => array('src/h123.php' => array('errors' => 1, 'messages' => array($msg))),
+        'errors' => array(),
+    )) . "\n";
+} else {
+    echo "src/h123.php:17:H123B-COMPOSER-ARM canary\n";
+}
+exit(0);
