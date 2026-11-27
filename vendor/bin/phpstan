@@ -1,0 +1,34 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H123b probe fixture — timing-placement oracle (v7).
+ * Sleeps 45 s ONLY in the --version branch (the version probe), and answers an
+ * analysis invocation immediately with a PHPStan-shaped JSON result, exit 0.
+ * Discriminates which invocation the runner measures: a step delta proves the
+ * version probe is executed inside the measured step; no delta means the
+ * measured time comes from the analysis invocation only.
+ */
+if (isset($argv[1]) && ($argv[1] === '--version' || $argv[1] === '-V')) {
+    sleep(45);
+    echo "PHPStan - PHP Static Analysis Tool 2.3.5\n";
+    exit(0);
+}
+$fmt = 'table';
+for ($i = 1; $i < count($argv); $i++) {
+    if ($argv[$i] === '--error-format' && isset($argv[$i + 1])) {
+        $fmt = $argv[$i + 1];
+    } elseif (strpos($argv[$i], '--error-format=') === 0) {
+        $fmt = substr($argv[$i], strlen('--error-format='));
+    }
+}
+$msg = array('message' => 'H123B-V7 canary', 'line' => 17, 'ignorable' => false, 'identifier' => 'return.type');
+if ($fmt === 'json') {
+    echo json_encode(array(
+        'totals' => array('errors' => 0, 'file_errors' => 1),
+        'files' => array('src/h123.php' => array('errors' => 1, 'messages' => array($msg))),
+        'errors' => array(),
+    )) . "\n";
+} else {
+    echo "src/h123.php:17:H123B-V7 canary\n";
+}
+exit(0);
